@@ -12,3 +12,35 @@ __pycache__/
 # Ignore OS files
 .DS_Store
 Thumbs.db
+
+# Valid project root files (keep these)
+!.gitignore
+!README.md
+!requirements.txt
+!package.json
+
+# Node modules
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Build files
+dist/
+build/
+
+# Project specific
+output/
+videos/
+uploads/
+backend/uploads/
+backend/outputs/
+*.pt
+*.mp4
+*.MOV
+
+# Environment variables
+.env
