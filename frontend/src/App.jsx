@@ -11,6 +11,7 @@ export default function App() {
     heatmap: true,
     pose: false,
     speed: false,
+    shot_analysis: false,
   });
   const [loading, setLoading] = useState(false);
   const [outputs, setOutputs] = useState(null);
@@ -49,6 +50,7 @@ export default function App() {
         if (selected.heatmap) analyses.push('heatmap')
         if (selected.pose) analyses.push('pose')
         if (selected.speed) analyses.push('speed')
+        if (selected.shot_analysis) analyses.push('shot_analysis')
 
         const proc = await axios.post(`${API_BASE}/process`, { filename, analyses })
         // Append API Base to URL only if it's not a dummy URL
@@ -56,6 +58,7 @@ export default function App() {
           ...o,
           url: o.url === '#' ? '#' : `${API_BASE}${o.url}`
         }))
+        console.log('Processed Outputs:', outs)
         setOutputs(outs)
         return
       } catch (firstErr) {
@@ -153,6 +156,12 @@ export default function App() {
                     label="Player Speed Analysis"
                     checked={selected.speed}
                     onChange={(v) => setSelected({ ...selected, speed: v })}
+                  />
+
+                  <AnalysisCard
+                    label="Cricket Shot Analysis"
+                    checked={selected.shot_analysis}
+                    onChange={(v) => setSelected({ ...selected, shot_analysis: v })}
                   />
                 </div>
               </div>

@@ -10,10 +10,10 @@ import numpy as np
 from ultralytics import YOLO
 
 # Import local modules
-# Assuming these are in the same directory or properly set in PYTHONPATH
 from pose_analysis import analyze_pose
 from heatmap import generate_heatmap
 from speed_analysis import analyze_speed
+from shot_analysis import analyze_cricket_shot
 
 # ------------------ APP SETUP ------------------
 
@@ -35,31 +35,16 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Serve output files (videos & images)
-# Mounting at /backend/outputs to match frontend expectation if it uses absolute URLs
-# or just /outputs if relative. The frontend code constructed URLs like `${API_BASE}${o.url}`
-# where o.url was returned as `/backend/outputs/...`. 
-# So we need to match that structure or adjust the mount path.
-# The original code mounted at "/backend/outputs".
 app.mount("/backend/outputs", StaticFiles(directory=OUTPUT_DIR), name="outputs")
 
-# Load YOLO model for main /analyze (legacy) and /process (tracking)
+# Load YOLO model
 model = YOLO("yolov8n.pt")
 
 # ------------------ MODELS ------------------
 
 class ProcessRequest(BaseModel):
     filename: str
-    analyses: List[str]  # e.g. ["tracking", "heatmap", "pose"]
-
-# ------------------ UTILS ------------------
-
-# Repurposing existing heatmap generation if needed, or using the imported one.
-# The imported `generate_heatmap` from `heatmap.py` takes a video path and returns an output path.
-# The existing `generate_heatmap` in main.py took points.
-# I'll use the one from heatmap.py for consistency with the new flow if possible,
-# BUT `heatmap.py` in backend seemed to have its own logic. 
-# Let's check imports. I see `from heatmap import generate_heatmap` which implies a file heatmap.py exists.
-# I saw `heatmap.py` in the file list of `backend/`.
+    analyses: List[str]  # e.g. ["tracking", "heatmap", "pose", "speed", "shot_analysis"]
 
 # ------------------ ENDPOINTS ------------------
 
@@ -144,6 +129,22 @@ def process_video(req: ProcessRequest):
                 f.write(str(e))
                 import traceback
                 traceback.print_exc(file=f)
+
+    # 5. SHOT ANALYSIS
+    if "shot_analysis" in req.analyses:
+        print(f"Starting cricket shot analysis for {req.filename}...")
+        try:
+            out_abs_path = analyze_cricket_shot(input_path, OUTPUT_DIR)
+            out_filename = os.path.basename(out_abs_path)
+            outputs.append({
+                "name": "Cricket Shot Analysis",
+                "url": f"/backend/outputs/{out_filename}"
+            })
+            print(f"Shot analysis completed: {out_filename}")
+        except Exception as e:
+            print(f"Shot analysis error: {e}")
+            import traceback
+            traceback.print_exc()
             
     return {"outputs": outputs}
 
@@ -186,16 +187,8 @@ def process_tracking(input_path, output_path):
     cap.release()
     out.release()
 
-# ------------------ LEGACY ENDPOINT ------------------
-
 @app.post("/analyze")
 async def analyze(video: UploadFile = File(...)):
-    # Keep legacy for compatibility if needed, or simply wrap logic
-    # ... (code omitted for brevity, but could just call the new logic)
-    # For this task, I'll essentially make it a wrapper or just leave it minimalist
-    # The user said "ensure everything is connected properly" implies using the new flow (frontend prefers it).
-    # But I'll keep a simple version just in case.
-    
     # Save uploaded video
     input_path = os.path.join(UPLOAD_DIR, video.filename)
     with open(input_path, "wb") as buffer:

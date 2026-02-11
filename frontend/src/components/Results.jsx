@@ -11,6 +11,7 @@ export default function Results({ outputs }) {
   const isVideo = (url) => url.match(/\.(mp4|webm|ogg)$/i)
 
   const handleView = (item) => {
+    console.log('Opening item:', item)
     if (item.type === 'speed_analysis' && item.data) {
       setSpeedData(item.data)
       setModalContent('speed_dashboard')

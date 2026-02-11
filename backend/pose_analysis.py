@@ -19,7 +19,10 @@ def analyze_pose(video_path, output_dir):
     base, ext = os.path.splitext(filename)
     # Sanitize base name
     clean_base = re.sub(r'[^a-zA-Z0-9_\-]', '_', base)
-    output_filename = f"pose_{clean_base}.mp4"
+    # Adding timestamp to ensure unique filename for browser cache busting
+    import time
+    timestamp = int(time.time())
+    output_filename = f"pose_{clean_base}_{timestamp}.webm"
     output_path = os.path.join(output_dir, output_filename)
     
     cap = cv2.VideoCapture(video_path)
@@ -30,7 +33,7 @@ def analyze_pose(video_path, output_dir):
     
     out = cv2.VideoWriter(
         output_path,
-        cv2.VideoWriter_fourcc(*"avc1"),
+        cv2.VideoWriter_fourcc(*"vp80"),
         fps,
         (w, h)
     )
@@ -84,20 +87,7 @@ def analyze_pose(video_path, output_dir):
                         if not (torch_is_zero(shoulder) or torch_is_zero(elbow) or torch_is_zero(wrist)):
                             ang = calculate_angle(shoulder.cpu().numpy(), elbow.cpu().numpy(), wrist.cpu().numpy())
                             
-                            if track_id in prev_angles:
-                                diff = abs(prev_angles[track_id] - ang)
-                                
-                                # Threshold for "chucking" detection (simple heuristic)
-                                if diff > 15:
-                                    cv2.putText(
-                                        frame,
-                                        "POSSIBLE CHUCK",
-                                        (int(elbow[0]), int(elbow[1]) - 20),
-                                        cv2.FONT_HERSHEY_SIMPLEX,
-                                        0.7,
-                                        (0, 0, 255),
-                                        2
-                                    )
+                            # Removed "POSSIBLE CHUCK" logic as requested
                             
                             prev_angles[track_id] = ang
                             
