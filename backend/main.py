@@ -9,11 +9,11 @@ import cv2
 import numpy as np
 from ultralytics import YOLO
 
-# Import local modules
-from pose_analysis import analyze_pose
-from heatmap import generate_heatmap
-from speed_analysis import analyze_speed
-from shot_analysis import analyze_cricket_shot
+# Import local modules (use package-relative paths since backend is a package)
+from .pose_analysis import analyze_pose
+from .heatmap import generate_heatmap
+from .speed_analysis import analyze_speed
+from .shot_analysis import analyze_cricket_shot
 
 # ------------------ APP SETUP ------------------
 

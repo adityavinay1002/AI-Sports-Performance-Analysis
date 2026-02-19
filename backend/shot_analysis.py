@@ -2,8 +2,8 @@ import cv2
 import numpy as np
 import os
 from ultralytics import YOLO
-from angle_utils import calculate_angle, calculate_distance
-from shot_classifier import classify_shot
+from .angle_utils import calculate_angle, calculate_distance
+from .shot_classifier import classify_shot
 
 # Initialize model
 model = YOLO("yolov8n-pose.pt")
