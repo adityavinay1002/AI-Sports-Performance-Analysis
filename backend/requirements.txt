@@ -1,3 +1,7 @@
+google-generativeai
+SpeechRecognition
+pydub
+python-dotenv
 fastapi
 uvicorn[standard]
 python-multipart

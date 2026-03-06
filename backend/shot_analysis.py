@@ -154,13 +154,9 @@ def analyze_cricket_shot(video_path, output_dir):
         cap.release()
         out.release()
     
-    # Verify file creation
-    if not os.path.exists(output_path):
-        raise FileNotFoundError(f"Output video was not created at {output_path}")
-        
-    file_size = os.path.getsize(output_path)
-    if file_size == 0:
-        raise ValueError(f"Output video size is 0 bytes at {output_path}")
-        
-    print(f"Video saved successfully: {output_path} (Size: {file_size/1024/1024:.2f} MB)")
-    return output_path
+    # Simple summary metric: Most frequent shot name
+    # We can refine this by tracking frames or use the final shot_name if it was updated
+    
+    return output_path, {"shot_type": shot_name}
+
+# Verify file creation

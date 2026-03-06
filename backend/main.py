@@ -14,6 +14,8 @@ from .pose_analysis import analyze_pose
 from .heatmap import generate_heatmap
 from .speed_analysis import analyze_speed
 from .shot_analysis import analyze_cricket_shot
+from .ai_coach import get_coaching_feedback
+from .voice_utils import transcribe_audio
 
 # ------------------ APP SETUP ------------------
 
@@ -46,6 +48,10 @@ class ProcessRequest(BaseModel):
     filename: str
     analyses: List[str]  # e.g. ["tracking", "heatmap", "pose", "speed", "shot_analysis"]
 
+class CoachingRequest(BaseModel):
+    question: str
+    metrics: dict
+
 # ------------------ ENDPOINTS ------------------
 
 @app.post("/upload")
@@ -62,6 +68,7 @@ def process_video(req: ProcessRequest):
         raise HTTPException(status_code=404, detail="File not found")
 
     outputs = []
+    aggregated_metrics = {}
     
     # Helper to clean filenames
     def clean_filename(fname):
@@ -101,12 +108,13 @@ def process_video(req: ProcessRequest):
     if "pose" in req.analyses:
         print(f"Starting pose analysis for {req.filename}...")
         try:
-            out_abs_path = analyze_pose(input_path, OUTPUT_DIR)
+            out_abs_path, metrics = analyze_pose(input_path, OUTPUT_DIR)
             out_filename = os.path.basename(out_abs_path)
             outputs.append({
                 "name": "Pose Analysis",
                 "url": f"/backend/outputs/{out_filename}"
             })
+            aggregated_metrics.update(metrics)
             print(f"Pose analysis completed: {out_filename}")
         except Exception as e:
             print(f"Pose error: {e}")
@@ -122,6 +130,7 @@ def process_video(req: ProcessRequest):
                 "data": metrics,
                 "url": "#" 
             })
+            aggregated_metrics.update(metrics)
             print(f"Speed analysis completed.")
         except Exception as e:
             print(f"Speed error: {e}")
@@ -134,19 +143,20 @@ def process_video(req: ProcessRequest):
     if "shot_analysis" in req.analyses:
         print(f"Starting cricket shot analysis for {req.filename}...")
         try:
-            out_abs_path = analyze_cricket_shot(input_path, OUTPUT_DIR)
+            out_abs_path, metrics = analyze_cricket_shot(input_path, OUTPUT_DIR)
             out_filename = os.path.basename(out_abs_path)
             outputs.append({
                 "name": "Cricket Shot Analysis",
                 "url": f"/backend/outputs/{out_filename}"
             })
+            aggregated_metrics.update(metrics)
             print(f"Shot analysis completed: {out_filename}")
         except Exception as e:
             print(f"Shot analysis error: {e}")
             import traceback
             traceback.print_exc()
             
-    return {"outputs": outputs}
+    return {"outputs": outputs, "aggregated_metrics": aggregated_metrics}
 
 def process_tracking(input_path, output_path):
     cap = cv2.VideoCapture(input_path)
@@ -205,3 +215,26 @@ async def analyze(video: UploadFile = File(...)):
         "tracked_video": "/backend/outputs/tracked.mp4",
         "heatmap": f"/backend/outputs/{os.path.basename(heatmap_path)}"
     }
+
+@app.post("/ai-coach")
+async def ai_coach(req: CoachingRequest):
+    try:
+        feedback = get_coaching_feedback(req.metrics, req.question)
+        return {"feedback": feedback}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/transcribe")
+async def transcribe(file: UploadFile = File(...)):
+    temp_path = os.path.join(UPLOAD_DIR, f"temp_{file.filename}")
+    try:
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        text = transcribe_audio(temp_path)
+        return {"text": text}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)

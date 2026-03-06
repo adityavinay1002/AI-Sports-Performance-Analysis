@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import UploadArea from "./components/UploadArea";
 import AnalysisCard from "./components/AnalysisCard";
 import Results from "./components/Results";
+import CoachAssistant from "./components/CoachAssistant";
 import axios from "axios";
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
   });
   const [loading, setLoading] = useState(false);
   const [outputs, setOutputs] = useState(null);
+  const [aggregatedMetrics, setAggregatedMetrics] = useState(null);
   const [error, setError] = useState(null);
 
   const handleRun = async () => {
@@ -60,6 +62,7 @@ export default function App() {
         }))
         console.log('Processed Outputs:', outs)
         setOutputs(outs)
+        setAggregatedMetrics(proc.data.aggregated_metrics || null)
         return
       } catch (firstErr) {
         // If primary flow returned 404 / Not Found, fall back to legacy /analyze endpoint
@@ -243,6 +246,9 @@ export default function App() {
                 )}
               </div>
             </div>
+
+            {/* AI Coaching Assistant Panel */}
+            <CoachAssistant metrics={aggregatedMetrics} />
           </div>
         </div>
       </div>

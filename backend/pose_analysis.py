@@ -100,7 +100,9 @@ def analyze_pose(video_path, output_dir):
     cap.release()
     out.release()
     
-    return output_path
+    avg_elbow_angle = np.mean(list(prev_angles.values())) if prev_angles else 0.0
+    
+    return output_path, {"elbow_angle": round(float(avg_elbow_angle), 2)}
 
 def torch_is_zero(t):
     # tensor check helper if inputs are tensors
