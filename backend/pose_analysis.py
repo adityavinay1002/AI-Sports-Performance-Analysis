@@ -31,12 +31,23 @@ def analyze_pose(video_path, output_dir):
     h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     
-    out = cv2.VideoWriter(
-        output_path,
-        cv2.VideoWriter_fourcc(*"vp80"),
-        fps,
-        (w, h)
-    )
+    # Skip frames control
+    skip_frames = 2 # Process every 3rd frame
+    adjusted_fps = fps / (skip_frames + 1)
+
+    # Try vp80 first, fallback to mp4v
+    fourcc = cv2.VideoWriter_fourcc(*"vp80")
+    out = cv2.VideoWriter(output_path, fourcc, adjusted_fps, (w, h))
+    
+    if not out.isOpened():
+        print("Warning: vp80 codec failed in analyze_pose, falling back to mp4v")
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        out = cv2.VideoWriter(output_path, fourcc, adjusted_fps, (w, h))
+
+    if not out.isOpened():
+        print(f"Error: Could not initialize VideoWriter for {output_path}")
+        cap.release()
+        return None, {}
     
     # store previous elbow angle per player
     prev_angles = {}
@@ -55,10 +66,20 @@ def analyze_pose(video_path, output_dir):
         cos_angle = np.dot(ba, bc) / (norm_ba * norm_bc)
         return np.degrees(np.arccos(np.clip(cos_angle, -1.0, 1.0)))
     
+    frame_count = 0
+    # skip_frames moved up to VideoWriter initialization
+    
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
+            
+        frame_count += 1
+        if frame_count % (skip_frames + 1) != 0:
+            continue
+            
+        if frame_count % 30 == 0:
+            print(f"Pose analysis processing frame {frame_count}...")
             
         results = model.track(frame, persist=True, conf=0.4, verbose=False)
         if not results:

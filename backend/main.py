@@ -169,19 +169,40 @@ def process_tracking(input_path, output_path):
     fps = cap.get(cv2.CAP_PROP_FPS)
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     
-    print(f"Video info: {width}x{height} @ {fps}fps, {total_frames} frames")
+    frame_count = 0
+    skip_frames = 2 # Process every 3rd frame
     
-    out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"avc1"), fps, (width, height))
+    # Adjust FPS for frame skipping so playback speed is correct
+    adjusted_fps = fps / (skip_frames + 1)
+    
+    # Try avc1 first, fallback to mp4v
+    fourcc = cv2.VideoWriter_fourcc(*"avc1")
+    out = cv2.VideoWriter(output_path, fourcc, adjusted_fps, (width, height))
+    
+    if not out.isOpened():
+        print("Warning: avc1 codec failed in process_tracking, falling back to mp4v")
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        out = cv2.VideoWriter(output_path, fourcc, adjusted_fps, (width, height))
+
+    if not out.isOpened():
+        print(f"Error: Could not initialize VideoWriter with avc1 or mp4v for {output_path}")
+        cap.release()
+        return
     
     frame_count = 0
+    skip_frames = 2 # Process every 3rd frame
+    
     while True:
         ret, frame = cap.read()
         if not ret:
             break
         
         frame_count += 1
-        if frame_count % 10 == 0:
-            print(f"Processing frame {frame_count}/{total_frames} ({frame_count/total_frames*100:.1f}%)")
+        if frame_count % (skip_frames + 1) != 0:
+            continue
+
+        if frame_count % 30 == 0:
+            print(f"Tracking processing frame {frame_count}/{total_frames} ({frame_count/total_frames*100:.1f}%)")
             
         results = model(frame, conf=0.4, verbose=False)
         for r in results:

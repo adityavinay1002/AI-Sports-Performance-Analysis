@@ -22,10 +22,20 @@ def analyze_speed(video_path):
     # Store centroids: {track_id: [ (x,y), ... ]}
     tracks = {}
     
+    frame_count = 0
+    skip_frames = 2 # Process every 3rd frame
+    
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
+            
+        frame_count += 1
+        if frame_count % (skip_frames + 1) != 0:
+            continue
+            
+        if frame_count % 30 == 0:
+            print(f"Speed analysis processing frame {frame_count}...")
             
         # Tracking
         results = model.track(frame, persist=True, conf=0.3, verbose=False)
@@ -49,7 +59,7 @@ def analyze_speed(video_path):
     # Calculate speeds
     # distance = sqrt(dx^2 + dy^2)
     # speed = distance / time_interval
-    # time_interval = 1/fps
+    # time_interval = (skip_frames + 1) / fps
     
     max_speeds = []
     avg_speeds = []
@@ -68,7 +78,7 @@ def analyze_speed(video_path):
             p2 = points[i]
             dist_pixels = np.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
             dist_meters = dist_pixels / PIXELS_PER_METER
-            speed_mps = dist_meters * fps
+            speed_mps = dist_meters * fps / (skip_frames + 1) # Adjust for skipped frames
             distances.append(speed_mps)
             
             # Classify

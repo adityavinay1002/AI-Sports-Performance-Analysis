@@ -36,15 +36,19 @@ def analyze_cricket_shot(video_path, output_dir):
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
     
+    # Skip frames control
+    skip_frames = 2 # Process every 3rd frame
+    adjusted_fps = fps / (skip_frames + 1)
+
     # Initialize writer
     # Try avc1 first (H.264), fallback to mp4v
     fourcc = cv2.VideoWriter_fourcc(*'avc1')
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    out = cv2.VideoWriter(output_path, fourcc, adjusted_fps, (width, height))
     
     if not out.isOpened():
         print(f"Warning: avc1 codec failed, falling back to mp4v")
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+        out = cv2.VideoWriter(output_path, fourcc, adjusted_fps, (width, height))
 
     if not out.isOpened():
         cap.release()
@@ -52,6 +56,7 @@ def analyze_cricket_shot(video_path, output_dir):
     
     shot_name = "Rest Shot"
     frame_count = 0
+    # skip_frames moved up
     
     try:
         while cap.isOpened():
@@ -60,6 +65,11 @@ def analyze_cricket_shot(video_path, output_dir):
                 break
             
             frame_count += 1
+            if frame_count % (skip_frames + 1) != 0:
+                continue
+                
+            if frame_count % 30 == 0:
+                print(f"Shot analysis processing frame {frame_count}...")
             
             # Run YOLO inference
             results = model(frame, verbose=False)
